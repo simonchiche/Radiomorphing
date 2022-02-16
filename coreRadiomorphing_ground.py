@@ -12,10 +12,11 @@ from scaling import myscale
 from interpolation_ground import do_interpolation_hdf5
 import sys
 import copy
+from NewTestRadiomorphing import Scalingcheck
 import glob
 from select_plane_ground import select_plane_ground, print_plane
 import matplotlib.pyplot as plt
-sys.path.append("/Users/chiche/Desktop/InterpolationTest")
+sys.path.append("./InterpolationTest")
 from interpolation_test_ground import test_interpolation
 from module_signal_process import filter_traces
 
@@ -36,99 +37,153 @@ def process(sim_dir, shower,  out_dir):
     """
     # Rescale the simulated showers to the requested one
     
+    for i in range(1):#len(sim_dir)):
+        
 # =============================================================================
 #                         Shower building
 # =============================================================================
-
-    desired_positions =  \
-    np.loadtxt("./DesiredPositions/desired_pos.txt")
-    
-    selected_plane, dplane = select_plane_ground(shower["primary"], \
-    shower["energy"], shower["zenith"], shower["azimuth"], \
-    shower["injection"], shower["altitude"], shower["fluctuations"], \
-    shower["simulation"], desired_positions)
-    
-    
-    RefShower = extractData(selected_plane)
-    TargetShower = copy.deepcopy(RefShower) 
-    TargetShower.primary = shower['primary']
-    TargetShower.energy = shower['energy']
-    TargetShower.zenith = shower['zenith']
-    TargetShower.azimuth = shower['azimuth']
-    TargetShower.injection = shower['injection']
-    TargetShower.fluctuations = shower['fluctuations']
-    print_plane(RefShower, TargetShower, dplane)
-    
-    
+        #print(shower["distplane"])
+        
+        Simulated_path = glob.glob(shower["simulation"])
+        print("sim...", Simulated_path)
+        SimulatedShower = extractData(Simulated_path[i])
+        x, y, z = SimulatedShower.pos[:,0], SimulatedShower.pos[:,1], SimulatedShower.pos[:,2]
+        cross_check = np.transpose(np.array([x[0:16], y[0:16], z[0:16]]))
+        
+        print(shower["primary"])
+        
+        selected_plane, dplane = select_plane_ground(shower["primary"], shower["energy"],\
+        shower["zenith"], shower["azimuth"], shower["injection"], shower["altitude"],\
+        shower["fluctuations"], shower["simulation"], cross_check, SimulatedShower.xmaxpos)
+        
+        
+        RefShower = extractData(selected_plane)
+        #RefShower = extractData(sim_dir[i]) # to chose the simulation manually
+        TargetShower = copy.deepcopy(RefShower) 
+        TargetShower.primary = shower['primary']
+        TargetShower.energy = shower['energy']
+        TargetShower.zenith = shower['zenith']
+        TargetShower.azimuth = shower['azimuth']
+        TargetShower.injection = shower['injection']
+        TargetShower.fluctuations = shower['fluctuations']
+        print_plane(RefShower, TargetShower, dplane)
+  
+        
 # =============================================================================
 #                              Scaling
 # =============================================================================
+        #Simulated_path = glob.glob(shower["simulation"])
+        #print("sim...", Simulated_path)
+        #SimulatedShower = extractData(Simulated_path[i])
+        TargetShower.zenith = SimulatedShower.zenith # to correct from any error in the input of the zenith
+        TargetShower, krho_geo = myscale(RefShower, TargetShower, SimulatedShower)
+        #print(SimulatedShower.distplane)
+# =============================================================================
+#                             LDF check
+# =============================================================================
 
-    TargetShower, krho_geo = myscale(RefShower, TargetShower)
-
+        ILDFvxb, ILDFvxvxb, IntTot = Scalingcheck(TargetShower, SimulatedShower, RefShower)
+                                
+# =============================================================================
+#                       Interpolation 3d tests
+# =============================================================================
+        
+        #pos = TargetShower.pos# TODO: check !!!!
+        #TargetShower.xmaxpos = SimulatedShower.xmaxpos
+        #TargetShower.traces[:,:176] = SimulatedShower.traces[:,:176]
+        #pos_sim = SimulatedShower.pos
+        #pos[160:,0], pos[160:,1], pos[160:,2] = pos_sim[160:,0], pos_sim[160:,1], pos_sim[160:,2]
+        #TargetShower.pos = pos
+        
 # =============================================================================
 #                           Interpolation      
 # =============================================================================
 
-    TargetShower.pos, TargetShower.traces[:,176:], ks = CerenkovStretch(RefShower, TargetShower)
-    TargetShower.pos, TargetShower.traces = TargetShower.GetinGeographicFrame()
-    
+        TargetShower.pos, TargetShower.traces[:,176:], ks = CerenkovStretch(RefShower, TargetShower)
+        TargetShower.pos, TargetShower.traces = TargetShower.GetinGeographicFrame()
+        
+        #TargetShower.pos[160:,:] = SimulatedShower.pos[160:,:]
+        
+        x, y, z = SimulatedShower.pos[:,0], SimulatedShower.pos[:,1], SimulatedShower.pos[:,2]
+        cx, cy, cz = x[0:16], y[0:16], z[0:16]
+        
+        
 # =============================================================================
 #                           antennas affectation
 # =============================================================================
-    
-    # We initalize the target shower antennas positions with an array
-    # containing: 
-    #   - first the scaled positions that we will use for the interpolation 
-    #   - then the target positions from the user input
-    
-    # we load the desired antenna
-    x_des, y_des,z_des =  desired_positions[:,0], desired_positions[:,1],\
-    desired_positions[:,2]
-    
-    initial_shape = 176 # hard-coded for the reference library
-    desired_shape = len(x_des)
-    
-    target_x, target_y, target_z = \
-    np.zeros(initial_shape + desired_shape),\
-    np.zeros(initial_shape + desired_shape), \
-    np.zeros(initial_shape + desired_shape)
-    
-    target_x[0:initial_shape] = TargetShower.pos[0:initial_shape,0]
-    target_y[0:initial_shape] = TargetShower.pos[0:initial_shape,1]
-    target_z[0:initial_shape] = TargetShower.pos[0:initial_shape,2]
-    
-    target_x[initial_shape:] = x_des
-    target_y[initial_shape:] = y_des
-    target_z[initial_shape:] = z_des
-    
-    NewPos = np.transpose(np.array([target_x, target_y, target_z]))
-    TargetShower.pos = NewPos
-    TargetShower.nant = len(NewPos[:, 0])
-    
+        
+        print("Until here everything should be FINE !!!!")
+
+        print("!!!!", np.shape(TargetShower.pos))
+        initial_shape = 160 # linked to the ref library
+        desired_shape = len(x)
+        target_x, target_y, target_z = np.zeros(initial_shape + desired_shape),\
+        np.zeros(initial_shape + desired_shape), np.zeros(initial_shape + desired_shape)
+        
+        target_x[0:initial_shape] = TargetShower.pos[0:160,0]
+        target_y[0:initial_shape] = TargetShower.pos[0:160,1]
+        target_z[0:initial_shape] = TargetShower.pos[0:160,2]
+        
+        target_x[initial_shape:] = x
+        target_y[initial_shape:] = y
+        target_z[initial_shape:] = z
+        
+        NewPos = np.transpose(np.array([target_x, target_y, target_z]))
+        TargetShower.pos = NewPos
+        TargetShower.nant = len(NewPos[:, 0])
+        TargetShower.desired_time = SimulatedShower.traces[:,:176]
+        
+        print("!!!! nant", TargetShower.nant)
+        
+        print("!!!!", np.shape(TargetShower.pos))
+        
+        print("!!!!", np.shape(TargetShower.desired_time))
+        
+
 # =============================================================================
 #                       end antennas affectation
 # =============================================================================
         
-    # filtering of the traces
-    pre_filtering = False
-    
-    if pre_filtering:
-        time_sample = int(len(TargetShower.traces[:,0]))
-        TargetShower.traces = \
-        filter_traces(TargetShower.traces, 176, time_sample)
+        
 
-    # run the interpolation
-    efield_interpolated, w_interpolated = \
-    do_interpolation_hdf5(TargetShower, VoltageTraces = None, \
-    FilteredVoltageTraces = None, antennamin=0,antennamax=159, \
-    DISPLAY=False, usetrace="efield")  
-    
-    print("\n")
-    print("Radio Morphing process completed!")
-    
-           
+        #sim_x, sim_y, sim_z = TargetShower.pos[:,0], TargetShower.pos[:,1], TargetShower.pos[:,2]
 
+        #sim_x[160:], sim_y[160:], sim_z[160:] = cx, cy, cz
+        
+        
+        #TargetShower.traces[:,:176] = SimulatedShower.traces[:,:176]
+        
+        #filtering of the traces
+        # TODO: add to the main code rewritten, add filtering as an input option
+        
+        pre_filtering = False
+        if pre_filtering:
+            time_sample = int(len(TargetShower.traces[:,0]))
+            TargetShower.traces = filter_traces(TargetShower.traces, 176, time_sample)
+
+
+        
+        efield_interpolated, w_interpolated = do_interpolation_hdf5(TargetShower, VoltageTraces = None, \
+        FilteredVoltageTraces = None, antennamin=0,antennamax=159, \
+        DISPLAY=False, usetrace="efield")  
+        
+        print(">>>>>", TargetShower.xmaxpos, SimulatedShower.xmaxpos, RefShower.xmaxpos)
+        
+        
+        error_peak, rm_peak, zh_peak = test_interpolation(SimulatedShower.traces,  efield_interpolated)
+        
+        #np.savetxt("sim_traces", SimulatedShower.traces)
+        
+        print(error_peak)
+        
+        w_interpolated  = np.array(w_interpolated)
+        w_interpolated = w_interpolated[~np.isnan(w_interpolated)]
+        plt.scatter(w_interpolated, rm_peak)
+        plt.show()
+
+              
+        return ILDFvxb, ILDFvxvxb, IntTot, krho_geo, RefShower.zenith, TargetShower.zenith
+    
     
 def CerenkovStretch(RefShower, TargetShower):
     
@@ -488,7 +543,7 @@ class Shower:
     
         a = np.sqrt((Re + injh)**2. - (Re+GdAlt)**2 *np.sin(np.pi-np.deg2rad(zen))**2) - (Re+GdAlt)*np.cos(np.pi-np.deg2rad(zen))
         zen_inj = np.rad2deg(np.pi-np.arccos((a**2 +(Re+injh)**2 -Re**2)/(2*a*(Re+injh))))
-                
+        
         return zen_inj    
 
             
@@ -515,7 +570,6 @@ class Shower:
         zen = self._get_CRzenith()
         injh2 = self.injection
         Xmax_primary = self.Xmax_param() 
-        
         
         zen2 = np.deg2rad(zen)
         
@@ -744,7 +798,7 @@ class Shower:
 def extractData(sim_file):
     
     simu_path = './' + sim_file
-    #print(sim_file)
+    print(sim_file)
     InputFilename = simu_path
     filehandle = h5py.File(InputFilename, 'r')
 

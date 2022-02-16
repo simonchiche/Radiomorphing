@@ -54,7 +54,7 @@ def GeomagneticScale(RefShower, TargetShower):
     
     LimitZenith = 180
     
-    #print(kgeo)
+    print(kgeo)
         
     if(ref_zenith>LimitZenith): # TODO: refine this condition, rather a condition over theta
     

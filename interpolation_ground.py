@@ -197,7 +197,7 @@ def interpolate_trace2(interpolate_mode,t1, trace1, x1, t2, trace2, x2, xdes, up
        print("unknown interpolation mode")
        weight1=0.5
        weight2=0.5
-       
+
 
     tmp = 1. / (tmp1 + tmp2)
     weight1 = tmp2 * tmp
@@ -560,7 +560,11 @@ def GetAntennaAnglesSimon(Zenith,Azimuth, xmax_position,positions_sims,positions
     pos_sims_angles = np.transpose([np.zeros(len(phi_sims)), phi_sims, w_sims_angles])
     pos_des_angles = np.transpose([np.zeros(len(phi_des)), phi_des, w_des_angles])
     
-
+    print("!!!!!!!!!!!")
+    print("!!!!!!!!!!!")
+    print("!!!!!!!!!!!")
+    print(np.shape(pos_des_angles))
+    print(w_des_angles)
 
     
     return pos_sims_angles, pos_des_angles, distanceratio #phi_sims, phi_des 
@@ -608,27 +612,27 @@ def SelectAntennasForInterpolation(pos_sims_angles,pos_des_angle, i, discarded):
     bailoutI=bailoutII=bailoutIII=bailoutIV=0
 
     if not index_I:
-        #print("list - Quadrant 1 - empty")
+        print("list - Quadrant 1 - empty")
         bailoutI=1
     if not index_II:
-        #print("list - Quadrant 2 - empty")
+        print("list - Quadrant 2 - empty")
         bailoutII=1
         index_II=index_I
     if not index_III:
-        #print("list - Quadrant 3 - empty")
+        print("list - Quadrant 3 - empty")
         bailoutIII=1
         index_III=index_IV
     if not index_IV:
-        #print("list - Quadrant 4 - empty")
+        print("list - Quadrant 4 - empty")
         bailoutIV=1
 
     if(bailoutI==1 or bailoutIV==1 or (bailoutII==1 and bailoutIII==0) or (bailoutII==0 and bailoutIII==1)):
-      #print("Point is outside of the starshape, discarding", )
+      print("Point is outside of the starshape, discarding", )
       discarded.append(i)
       return -1,-1,-1,-1
 
     if(bailoutII==1 and bailoutIII==1 and bailoutIV==0 and bailoutI==0):
-        #print(" I cannot find antennas with smaller alpha, lets try using only the inner antennas")
+        print(" I cannot find antennas with smaller alpha, lets try using only the inner antennas")
         index_II=index_I
         index_III=index_IV
 
@@ -651,7 +655,7 @@ def SelectAntennasForInterpolation(pos_sims_angles,pos_des_angle, i, discarded):
 
     #print(index_I[0], "INDEXXI")
     #print(index_IV[0], "INDEXXIV")
-    #print("Selected I ",index_I[0][0],"Selected II ", index_II[0][0],"Selected III ", index_III[0][0],"Selected IV ",index_IV[0][0])
+    print("Selected I ",index_I[0][0],"Selected II ", index_II[0][0],"Selected III ", index_III[0][0],"Selected IV ",index_IV[0][0])
     Selected_I=index_I[0][0]
     Selected_II=index_II[0][0]
     Selected_III=index_III[0][0]
@@ -665,7 +669,7 @@ def SelectAntennasForInterpolation(pos_sims_angles,pos_des_angle, i, discarded):
 
 
 
-def PerformInterpolation(EfieldTraces, Selected_I, Selected_II, Selected_III, Selected_IV, distanceratio, pos_sims_angles, pos_des_angle, DesiredT0, tracetype, VoltageTraces, FilteredVoltageTraces, DISPLAY=False, PLOTPAPER=False,i=0):
+def PerformInterpolation(EfieldTraces, Time, Selected_I, Selected_II, Selected_III, Selected_IV, distanceratio, pos_sims_angles, pos_des_angle, DesiredT0, tracetype, VoltageTraces, FilteredVoltageTraces, DISPLAY=False, PLOTPAPER=False,i=0):
 #InputFilename, where the starshape sim is
 #CurrentSignalInfo  (so that i dont have to get it from the file each time the interpolation is done, as usually this will be used inside a loop over the desired antennas.
 #CurrentAntennaInfo (so that i dont have to get it from the file each time the interpolation is done, as usually this will be used inside a loop over the desired antennas.
@@ -683,9 +687,9 @@ def PerformInterpolation(EfieldTraces, Selected_I, Selected_II, Selected_III, Se
     
     # TODO: check this part with Matias
     
-    tmin = 0#np.min(Time)
-    tmax = 2300#np.max(Time)
-    tbinsize = 0.5#Time[0]
+    tmin = np.min(Time)
+    tmax = np.max(Time)
+    tbinsize = Time[0]
         
     #tbinsize=hdf5io.GetTimeBinSize(CurrentSignalSimInfo)
     #tmin=hdf5io.GetTimeWindowMin(CurrentSignalSimInfo)
@@ -699,7 +703,7 @@ def PerformInterpolation(EfieldTraces, Selected_I, Selected_II, Selected_III, Se
     #AntennaID=hdf5io.GetAntennaID(CurrentAntennaInfo,Selected_I)
     if(tracetype=='efield'):
       #txt0=hdf5io.GetAntennaEfield(InputFilename,CurrentEventName,AntennaID,OutputFormat="numpy")
-      txt0 = EfieldTraces[Selected_I] # trace of one of the selected antenna for the interpolation
+      txt0 = EfieldTraces[Selected_I]
     elif(tracetype=='voltage'):
       #txt0=hdf5io.GetAntennaVoltage(InputFilename,CurrentEventName,AntennaID,OutputFormat="numpy")
       txt0 = VoltageTraces[Selected_I]
@@ -809,7 +813,6 @@ def PerformInterpolation(EfieldTraces, Selected_I, Selected_II, Selected_III, Se
     tnew_desiredx=np.linspace(DesiredT0+tmin+tbinsize,DesiredT0+tmin+ntbins*tbinsize,ntbins)
     tnew_desiredy=tnew_desiredx
     tnew_desiredz=tnew_desiredx
-    
 
     if(round((tnew_desiredx[2]-tnew_desiredx[1]),5)!=round(tbinsize,5)):
      print("warning! different tbin sizes",tbinsize,tnew_desiredx[2]-tnew_desiredx[1])
@@ -827,18 +830,20 @@ def PerformInterpolation(EfieldTraces, Selected_I, Selected_II, Selected_III, Se
 def ComputeTimeAntennas(TargetShower):
     
     Nant = TargetShower.nant - 176
+    print("!!! Nant", Nant)
     xmaxdist = TargetShower.xmaxdist
     xmaxposition = TargetShower.xmaxpos
     c = 299792458.0
     time2core = (xmaxdist/c)*1e9 # time from xmax to the core for n = 1 
     #if(realXmax): time2core = ((XmaxDistance/(299792458.0))*1e9)
-    desired = TargetShower.pos[Nant:,:] # TODO: replace with input positions # interpolated positions in meters [Number_antennas,3]
+    desired = TargetShower.pos[160:,:] # TODO: replace with input positions # interpolated positions in meters [Number_antennas,3]
     positions = TargetShower.pos
+    print("!!! desired, pos", len(desired), len(positions))
     xpoints, ypoints , zpoints  = positions[:,0][Nant:], positions[:,1][Nant:], positions[:,2][Nant:]
     time_all = TargetShower.desired_time # to modify
     t0all= np.zeros(len(desired))
     k =0
-    
+
     for i in range(len(desired)):
         
         nant = i
@@ -851,29 +856,26 @@ def ComputeTimeAntennas(TargetShower):
         t0 = (dant*nref/(299792458.0))*1e9 - time2core 
         t0all[k] = t0
         k = k +1
-    '''
+
         tmin_all = []
         tmax_all = []
 
-
-    #for i in range(len(desired)):
+    for i in range(len(desired)):
         
-        #tmin_all.append(abs(t0all[i])- abs(min(time_all[:,i])))
-        #tmax_all.append(abs(t0all[i]) - abs(max(time_all[:,i])))
-    '''
+        tmin_all.append(abs(t0all[i])- abs(min(time_all[:,i])))
+        tmax_all.append(abs(t0all[i]) - abs(max(time_all[:,i])))
+    
     
     desiredtime = t0all # TODO: compute that
-    '''
-    tmin = #np.mean(tmin_all)
-    tmax = #np.mean(tmax_all)
-    tbin = #time_all[1,0] - time_all[0,0]
+    tmin = np.mean(tmin_all)
+    tmax = np.mean(tmax_all)
+    tbin = time_all[1,0] - time_all[0,0]
     Time = [tbin, tmin, tmax]
-    '''
     
     #print(tmin, tmax, tbin)
 
      
-    return desiredtime
+    return desiredtime, Time
     
 
 def do_interpolation_hdf5(TargetShower, VoltageTraces, FilteredVoltageTraces, antennamin=0, antennamax=159, DISPLAY=False, usetrace='efield', FillOutliersWithZeros=True):
@@ -930,16 +932,16 @@ def do_interpolation_hdf5(TargetShower, VoltageTraces, FilteredVoltageTraces, an
 #                       Data loading
 # =============================================================================    
     
-    Nant = TargetShower.nant - 176 # TODO: change the 176 with the desired number of antennas
+    Nant = TargetShower.nant - 176 # should give 160
     Energy = TargetShower.energy # EeV
     Zenith = TargetShower.zenith # GRANDconventions
     Azimuth = TargetShower.azimuth # GARND conventions
     Inclination = TargetShower.inclination # degrees
     GroundAltitude = TargetShower.glevel # meters
     xmaxposition = TargetShower.xmaxpos
-    desired = TargetShower.pos[Nant:,:] # TODO: replace with input positions # interpolated positions in meters [Number_antennas,3]
+    desired = TargetShower.pos[160:,:] # TODO: replace with input positions # interpolated positions in meters [Number_antennas,3]
     PositionsPlane = TargetShower.pos[:Nant,:]
-    desiredtime  = ComputeTimeAntennas(TargetShower)
+    desiredtime, Time  = ComputeTimeAntennas(TargetShower)
    # print(desiredtime)
     
     EfieldTraces = []
@@ -979,20 +981,18 @@ def do_interpolation_hdf5(TargetShower, VoltageTraces, FilteredVoltageTraces, an
     discarded = []
     for i in np.arange(0,len(pos_des_angles)):
         
-        if(i%10==0): print("Computing... %d/%d antennas" %(i, len(pos_des_angles)))
-        
         #select the four antennas for the inerpolation for this desired antenna
         Selected_I,Selected_II,Selected_III,Selected_IV = SelectAntennasForInterpolation(pos_sims_angles,pos_des_angles[i], i, discarded)
 
         Skip=False
         for tracetype in usetracelist:
-            #print("computing for "+tracetype+" on desired antenna "+str(i))
+            print("computing for "+tracetype+" on desired antenna "+str(i))
             #If there was a problem selecting the antennas, dont interpolate
 
             Skip=False
             if(Selected_I==-1 or Selected_II==-1 or Selected_III == -1 or Selected_IV==-1):
                 if(FillOutliersWithZeros==True):
-                    #print("antenna outside of the starshape, interpolation not performed, filled with 0",i)
+                    print("antenna outside of the starshape, interpolation not performed, filled with 0",i)
                     ntbins = len(EfieldTraces[0][:,0])
                     desired_trace=np.zeros((ntbins,4))
                 else:
@@ -1004,7 +1004,7 @@ def do_interpolation_hdf5(TargetShower, VoltageTraces, FilteredVoltageTraces, an
                        
             else:
                 #Do the interpolation
-                desired_trace=PerformInterpolation(EfieldTraces, Selected_I, Selected_II, Selected_III, Selected_IV, distanceratio[0][i], pos_sims_angles, pos_des_angles[i],DesiredT0[i], tracetype,VoltageTraces, FilteredVoltageTraces, DISPLAY=DISPLAY, PLOTPAPER=PLOTPAPER, i=i)
+                desired_trace=PerformInterpolation(EfieldTraces, Time, Selected_I, Selected_II, Selected_III, Selected_IV, distanceratio[0][i], pos_sims_angles, pos_des_angles[i],DesiredT0[i], tracetype,VoltageTraces, FilteredVoltageTraces, DISPLAY=DISPLAY, PLOTPAPER=PLOTPAPER, i=i)
                 desired_traceAll.append(desired_trace)
 
         del Selected_I, Selected_II, Selected_III, Selected_IV
@@ -1031,22 +1031,57 @@ def do_interpolation_hdf5(TargetShower, VoltageTraces, FilteredVoltageTraces, an
     for i in range(len(desired)):
         #print(pos_des_angles[i][2])
         if(i != discarded[k]):
-            np.savetxt("./OutputDirectory/DesiredTraces_%d.txt" %i, desired_traceAll[i -k])
-            #efield_interpolated.append(desired_traceAll[i -k])
-            #w_interpolated.append(pos_des_angles[i][2])
+            #np.savetxt("./OutputDirectory/DesiredTraces_%d.txt" %i, desired_traceAll[i -k])
+            efield_interpolated.append(desired_traceAll[i -k])
+            w_interpolated.append(pos_des_angles[i][2])
             
-            #t, ex, ey, ez = efield_interpolated[i][:,0].T, efield_interpolated[i][:,1].T, \
-            #efield_interpolated[i][:,2].T, efield_interpolated[i][:,3].T
-            #etot =  np.sqrt(ex**2 + ey**2 + ez**2)
+            t, ex, ey, ez = efield_interpolated[i][:,0].T, efield_interpolated[i][:,1].T, \
+            efield_interpolated[i][:,2].T, efield_interpolated[i][:,3].T
+            etot =  np.sqrt(ex**2 + ey**2 + ez**2)
+            
+            plt.show()
+            
+            if(i==8): 
+                print(max(etot), i)
+                
+                x_interpolated = np.copy(ex)
+                y_interpolated = np.copy(ey)
+                z_interpolated = np.copy(ez)
+                
+                #plt.plot(ex)
+                #plt.plot(ey)
+                #plt.plot(ez)
+            
+            if((i==16) or (i==0)):
+                print(i, "antenna used !")
+                
+                if(counter == 1):
+                    xant4interpolation1 = TargetShower.traces[:,i+176]
+                    yant4interpolation1 = TargetShower.traces[:,2*i+176]
+                    zant4interpolation1 = TargetShower.traces[:,3*i+176]
+                    
+                    counter = counter + 1
+                
+                if(counter  == 2):
+                    
+                    xant4interpolation2 = TargetShower.traces[:,i+176]
+                    yant4interpolation2 = TargetShower.traces[:,2*i+176]
+                    zant4interpolation2 = TargetShower.traces[:,3*i+176]
+                    
+                    
+                #plt.plot(TargetShower.traces[:,i+176])
+                #plt.plot(TargetShower.traces[:,i+2*176])
+                #plt.plot(TargetShower.traces[:,i+3*176])
+                #plt.xlim(300,600)
+                #plt.show()
             
         else:
             k = k +1
-            #efield_interpolated.append(No_data)
+            efield_interpolated.append(No_data)
             #efield_interpolated.append(desired_traceAll[i -k])
-            #w_interpolated.append(np.nan)
+            w_interpolated.append(np.nan)
             #w_interpolated.append(pos_des_angles[i][2])
     
-    '''
     
     plt.plot(x_interpolated, color ='purple')
     plt.plot(xant4interpolation1, color = 'green')
@@ -1085,7 +1120,6 @@ def do_interpolation_hdf5(TargetShower, VoltageTraces, FilteredVoltageTraces, an
 
     
     sys.exit()
-    '''
     #print(w_interpolated)
     return efield_interpolated, w_interpolated
 

@@ -34,14 +34,13 @@ for i in range(len(simulations)):
     
     if(len(ref_sim)>0): continue # we check that the shower is not already in the lib
             
-    print(energy, zenith, azimuth, dplane, simulations[i])
-    run(energy, zenith, azimuth, dplane, simulations[i])
-    '''
+    
+    ILDFvxb, ILDFvxvxb, Itot, krho_geo, Ref_zenith, Target_zenith = run(energy, zenith, azimuth, dplane, simulations[i])
+    
     ILDFvxbAll.append(ILDFvxb), ILDFvxvxbAll.append(ILDFvxvxb), ItotAll.append(Itot)
     krho_all.append(krho_geo), Ref_thetaAll.append(Ref_zenith), Target_thetaAll.append(Target_zenith)
     dplane_all.append(dplane)
-    '''
- 
+    
     #print(ILDFvxb, ILDFvxvxb)
     
 

@@ -9,10 +9,9 @@ Created on Tue Mar  2 15:28:02 2021
 from ModuleScale import EnergyScale, GeomagneticScale, DensityScale, CerenkovStretch
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
    
 #def myscale(sim_file, primary, energy, zenith, azimuth):
-def myscale(RefShower, TargetShower):
+def myscale(RefShower, TargetShower, SimulatedShower):
      
     Nant = RefShower.nant
     
@@ -30,6 +29,9 @@ def myscale(RefShower, TargetShower):
 
     TargetShower.traces[:,2*Nant:3*Nant], TargetShower.traces[:,3*Nant:4*Nant],\
     TargetShower.xmaxpos, krho_geo, krho_ce = DensityScale(RefShower, TargetShower) 
+    
+    
+    TargetShower.xmaxpos = SimulatedShower.xmaxpos # for the tests only 
         
     # Layout and traces stretching
     TargetShower.pos, TargetShower.traces[:,Nant:], kstretch = CerenkovStretch(RefShower, TargetShower)
