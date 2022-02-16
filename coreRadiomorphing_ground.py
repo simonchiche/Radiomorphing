@@ -15,11 +15,11 @@ import copy
 import glob
 from select_plane_ground import select_plane_ground, print_plane
 import matplotlib.pyplot as plt
-#sys.path.append("/Users/chiche/Desktop/InterpolationTest")
-#from interpolation_test_ground import test_interpolation
+sys.path.append("/Users/chiche/Desktop/InterpolationTest")
+from interpolation_test_ground import test_interpolation
 from module_signal_process import filter_traces
 
-def process(shower,  out_dir):
+def process(sim_dir, shower,  out_dir):
     """Rescale and interpolate the radio traces for all antennas 
         - start the Radio Morphing procedure
 
@@ -236,22 +236,22 @@ class Shower:
         # function that returns the trcaes in the shower plane (v, vxb, vxvxb) 
         #from the traces in the geographic plane (x, y, z)
 
-        inclination = self.inclination*np.pi/180.0 # magnetic field inclination
+        inclination = self.inclination*np.pi/180.0
         
-        pos =  self.pos # antennas positions: 3 rows of length Nantenna [x, y, z]
+        pos =  self.pos
         x, y, z = pos[:,0], pos[:,1], pos[:,2]
         n = len(x) # number of antennas
         
         # We move the core position in (0,0,0) before changing the 
         #reference frame
         
-        core = self.get_center() 
+        core = self.get_center()
         
         x = x - core[0]
         y = y - core[1] 
         z = z - core[2]
         
-        Traces = self.traces # Efield traces: 4 rows of length Nantennas [Time, Ex, Ey, Ex]
+        Traces = self.traces
         time_sample = len(Traces[:,0])
         
         # antennas positions in the  shower reference frame (v, vxB, vxvxB)
